@@ -42,12 +42,17 @@ class TodoListViewModel: TodoListViewModelProtocol {
     @Published var editingText = TodoModel(id: 0, text: "", description: "", type: .active)
     
     private var cancellables = Set<AnyCancellable>()
+    private var nextId: Int = 1
     
     func add() {
-        let timeInterval = Date().timeIntervalSince1970
-        let index = Int(timeInterval)
+        // Generate unique ID using counter
+        let index = nextId
+        nextId += 1
+        
+        // Stop editing any current todo before adding a new one
+        stopEditing()
+        
         let newTodo = TodoModel(id: index, text: "", description: "", type: .active)
-        editingText.update(newTodo: newTodo)
         allTodos[index] = newTodo
         edit(id: index)
     }
@@ -60,6 +65,9 @@ class TodoListViewModel: TodoListViewModelProtocol {
     }
     
     func edit(id: Int) {
+        // Clean up previous cancellables before starting a new edit
+        cancellables.removeAll()
+        
         state = .editing(index: id)
         if let editingTodo = allTodos[id] {
             editingText.update(newTodo: editingTodo)
@@ -83,7 +91,7 @@ class TodoListViewModel: TodoListViewModelProtocol {
             todo.type = todo.type == .active ? .completed : .active
             allTodos[id] = todo
         }
-        
+            
         if editingText.id == id {
             editingText.type = editingText.type == .active ? .completed: .active
             editingText.update(newTodo: editingText)
