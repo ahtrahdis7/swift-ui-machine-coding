@@ -14,74 +14,111 @@ struct TodoListView: View {
     
     var body: some View {
         ZStack {
-            List {
-                ForEach(viewModel.allTodos.sorted(by: { $0.key < $1.key }), id: \.key) { id, item in
-                    HStack {
-                        Button(action: {
-                            viewModel.toggleTodo(id: id)
-                        }) {
-                            Image(systemName: item.type == .completed ? "checkmark.square.fill" : "square")
-                                .foregroundColor(item.type == .completed ? .blue : .gray)
-                                .font(.system(size: 20))
+            VStack(spacing: 0) {
+                // filter view
+                HStack(spacing: 12) {
+                    FilterButton(
+                        title: "All",
+                        isSelected: viewModel.filter == .all,
+                        action: { viewModel.updateFilter(filter: .all) }
+                    )
+                    FilterButton(
+                        title: "Active",
+                        isSelected: viewModel.filter == .active,
+                        action: { viewModel.updateFilter(filter: .active) }
+                    )
+                    FilterButton(
+                        title: "Completed",
+                        isSelected: viewModel.filter == .completed,
+                        action: { viewModel.updateFilter(filter: .completed) }
+                    )
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.white)
+                
+                List {
+                ForEach(viewModel.allTodos
+                    .filter { id, item in
+                        switch viewModel.filter {
+                        case .all:
+                            return true
+                        case .active:
+                            return item.type == .active
+                        case .completed:
+                            return item.type == .completed
                         }
-                        .buttonStyle(.plain)
+                    }
+                    .sorted(by: { $0.key < $1.key }), id: \.key) { id, item in
+                        HStack {
+                            Button(action: {
+                                viewModel.toggleTodo(id: id)
+                            }) {
+                                Image(systemName: item.type == .completed ? "checkmark.square.fill" : "square")
+                                    .foregroundColor(item.type == .completed ? .blue : .gray)
+                                    .font(.system(size: 20))
+                            }
+                            .buttonStyle(.plain)
 
-                        if viewModel.editingText.id == item.id {
-                            TextField("Enter text", text: $viewModel.editingText.text)
-                                .textFieldStyle(.automatic)
-                                .focused($isTextFieldFocused)
-                                .onAppear {
-                                    // Use async to ensure focus happens after view appears
-                                    DispatchQueue.main.async {
-                                        isTextFieldFocused = true
+                            if viewModel.editingText.id == item.id {
+                                TextField("Enter text", text: $viewModel.editingText.text)
+                                    .textFieldStyle(.automatic)
+                                    .focused($isTextFieldFocused)
+                                    .onAppear {
+                                        // Use async to ensure focus happens after view appears
+                                        DispatchQueue.main.async {
+                                            isTextFieldFocused = true
+                                        }
+                                    }
+                                    .strikethrough(item.type == .completed)
+                                    .onSubmit {
+                                        viewModel.stopEditing()
+                                    }
+                                
+                            } else {
+                                if item.type == .completed {
+                                    Text(item.text)
+                                        .strikethrough()
+                                } else {
+                                    Text(item.text)
+                                }
+                                
+                            }
+                            
+                            Spacer()
+                            
+                            Button(role: .destructive, action: {
+                                viewModel.remove(id: id)
+                            }){
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.red)
+                                    .font(.system(size: 20))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            // Only apply tap gesture when not editing this item
+                            TapGesture()
+                                .onEnded { _ in
+                                    if case .editing(let editingId) = viewModel.state,
+                                        editingId == id {
+                                        // Already editing this item, don't do anything
+                                    } else {
+                                        viewModel.edit(id: id)
                                     }
                                 }
-                                .strikethrough(item.type == .completed)
-                                .onSubmit {
-                                    viewModel.stopEditing()
-                                }
-                            
-                        } else {
-                            if item.type == .completed {
-                                Text(item.text)
-                                    .strikethrough()
-                            } else {
-                                Text(item.text)
-                            }
-                            
-                        }
-                        
-                        Spacer()
-                        Button(role: .destructive, action: {
-                            viewModel.remove(id: id)
-                        }){
-                            Image(systemName: "trash")
-                                .foregroundStyle(.red)
-                                .font(.system(size: 20))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        // Only apply tap gesture when not editing this item
-                        TapGesture()
-                            .onEnded { _ in
-                                if case .editing(let editingId) = viewModel.state,
-                                    editingId == id {
-                                    // Already editing this item, don't do anything
-                                } else {
-                                    viewModel.edit(id: id)
-                                }
-                            }
-                    )
+                        )
                 }
                 
                 ProgressView()
                     .onAppear {
                         viewModel.loadMore()
                     }
-            }.background(.white)
+                }
+                .background(.white)
+            }
             
             // Floating glass button
             VStack {
@@ -130,6 +167,27 @@ struct TodoListView: View {
                     }
                 }
         )
+    }
+}
+
+struct FilterButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(isSelected ? .white : .primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(isSelected ? Color.blue : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
     }
 }
 
