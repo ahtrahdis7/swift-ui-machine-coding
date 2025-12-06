@@ -16,28 +16,38 @@ struct TodoListView: View {
             List {
                 ForEach(viewModel.allTodos.sorted(by: { $0.key < $1.key }), id: \.key) { id, item in
                     HStack {
-                        Text(String(id))
-                        switch viewModel.state {
-                        case .editing(_):
-                            if viewModel.editingText.id == item.id {
-                                TextField("Enter text", text: $viewModel.editingText.text)
-                                    .textFieldStyle(.automatic)
-                                    .focused($isTextFieldFocused)
-                                    .onAppear {
-                                        // Use async to ensure focus happens after view appears
-                                        DispatchQueue.main.async {
-                                            isTextFieldFocused = true
-                                        }
+                        Button(action: {
+                            viewModel.toggleTodo(id: id)
+                        }) {
+                            Image(systemName: item.type == .completed ? "checkmark.square.fill" : "square")
+                                .foregroundColor(item.type == .completed ? .blue : .gray)
+                                .font(.system(size: 20))
+                        }
+                        .buttonStyle(.plain)
+
+                        if viewModel.editingText.id == item.id {
+                            TextField("Enter text", text: $viewModel.editingText.text)
+                                .textFieldStyle(.automatic)
+                                .focused($isTextFieldFocused)
+                                .onAppear {
+                                    // Use async to ensure focus happens after view appears
+                                    DispatchQueue.main.async {
+                                        isTextFieldFocused = true
                                     }
-                                    .onSubmit {
-                                        viewModel.stopEditing()
-                                    }
-                                
+                                }
+                                .strikethrough(item.type == .completed)
+                                .onSubmit {
+                                    viewModel.stopEditing()
+                                }
+                            
+                        } else {
+                            if item.type == .completed {
+                                Text(item.text)
+                                    .strikethrough()
                             } else {
                                 Text(item.text)
                             }
-                        case .view:
-                            Text(item.text)
+                            
                         }
                         
                     }
@@ -47,16 +57,16 @@ struct TodoListView: View {
                         // Only apply tap gesture when not editing this item
                         TapGesture()
                             .onEnded { _ in
-                                if case .editing(let editingId) = viewModel.state, editingId == id {
+                                if case .editing(let editingId) = viewModel.state,
+                                    editingId == id {
                                     // Already editing this item, don't do anything
                                 } else {
-                                    print(id)
                                     viewModel.edit(id: id)
                                 }
                             }
                     )
                 }
-            }
+            }.background(.white)
             
             // Floating glass button
             VStack {
@@ -94,6 +104,7 @@ struct TodoListView: View {
                 }
             }
         }
+        .background(.white)
         .simultaneousGesture(
             TapGesture()
                 .onEnded { _ in

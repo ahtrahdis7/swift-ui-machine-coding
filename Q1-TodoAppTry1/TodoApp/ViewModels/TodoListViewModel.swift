@@ -28,7 +28,7 @@ protocol TodoListViewModelProtocol: ObservableObject {
     func add()
     func remove(id: Int)
     func edit(id: Int)
-    func markComplete(id: Int)
+    func toggleTodo(id: Int)
     func updateFilter(filter: FilterType)
     func stopEditing()
 }
@@ -70,9 +70,15 @@ class TodoListViewModel: TodoListViewModelProtocol {
         
     }
     
-    func markComplete(id: Int) {
-        if allTodos[id] != nil {
-            allTodos[id]?.type = .completed
+    func toggleTodo(id: Int) {
+        if var todo = allTodos[id] {
+            todo.type = todo.type == .active ? .completed : .active
+            allTodos[id] = todo
+        }
+        
+        if editingText.id == id {
+            editingText.type = editingText.type == .active ? .completed: .active
+            editingText.update(newTodo: editingText)
         }
     }
     
