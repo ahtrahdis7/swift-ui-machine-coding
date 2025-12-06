@@ -160,6 +160,7 @@ class TodoListViewModel: TodoListViewModelProtocol {
             editingText.update(newTodo: editingTodo)
             
             $editingText
+                .debounce(for: 0.05, scheduler: DispatchQueue.main)
                 .filter { value in
                     print(value.id)
                     return value.id == 0 ? false: true
