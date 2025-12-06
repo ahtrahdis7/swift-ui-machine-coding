@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		42796B692EE35C0700F0AE9B /* Q1-TodoAppTry1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Q1-TodoAppTry1.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		42796B692EE35C0700F0AE9B /* SwiftUI_MachineCoding.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftUI_MachineCoding.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		42796B6B2EE35C0700F0AE9B /* Q1-TodoAppTry1 */ = {
+		42796B6B2EE35C0700F0AE9B /* SwiftUI_MachineCoding */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Q1-TodoAppTry1";
+			path = SwiftUI_MachineCoding;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		42796B602EE35C0700F0AE9B = {
 			isa = PBXGroup;
 			children = (
-				42796B6B2EE35C0700F0AE9B /* Q1-TodoAppTry1 */,
+				42796B6B2EE35C0700F0AE9B /* SwiftUI_MachineCoding */,
 				42796B6A2EE35C0700F0AE9B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		42796B6A2EE35C0700F0AE9B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				42796B692EE35C0700F0AE9B /* Q1-TodoAppTry1.app */,
+				42796B692EE35C0700F0AE9B /* SwiftUI_MachineCoding.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		42796B682EE35C0700F0AE9B /* Q1-TodoAppTry1 */ = {
+		42796B682EE35C0700F0AE9B /* SwiftUI_MachineCoding */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 42796B742EE35C0800F0AE9B /* Build configuration list for PBXNativeTarget "Q1-TodoAppTry1" */;
+			buildConfigurationList = 42796B742EE35C0800F0AE9B /* Build configuration list for PBXNativeTarget "SwiftUI_MachineCoding" */;
 			buildPhases = (
 				42796B652EE35C0700F0AE9B /* Sources */,
 				42796B662EE35C0700F0AE9B /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				42796B6B2EE35C0700F0AE9B /* Q1-TodoAppTry1 */,
+				42796B6B2EE35C0700F0AE9B /* SwiftUI_MachineCoding */,
 			);
-			name = "Q1-TodoAppTry1";
+			name = SwiftUI_MachineCoding;
 			packageProductDependencies = (
 			);
 			productName = "Q1-TodoAppTry1";
-			productReference = 42796B692EE35C0700F0AE9B /* Q1-TodoAppTry1.app */;
+			productReference = 42796B692EE35C0700F0AE9B /* SwiftUI_MachineCoding.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 42796B642EE35C0700F0AE9B /* Build configuration list for PBXProject "Q1-TodoAppTry1" */;
+			buildConfigurationList = 42796B642EE35C0700F0AE9B /* Build configuration list for PBXProject "SwiftUI_MachineCoding" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				42796B682EE35C0700F0AE9B /* Q1-TodoAppTry1 */,
+				42796B682EE35C0700F0AE9B /* SwiftUI_MachineCoding */,
 			);
 		};
 /* End PBXProject section */
@@ -313,7 +313,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		42796B642EE35C0700F0AE9B /* Build configuration list for PBXProject "Q1-TodoAppTry1" */ = {
+		42796B642EE35C0700F0AE9B /* Build configuration list for PBXProject "SwiftUI_MachineCoding" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				42796B722EE35C0800F0AE9B /* Debug */,
@@ -322,7 +322,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		42796B742EE35C0800F0AE9B /* Build configuration list for PBXNativeTarget "Q1-TodoAppTry1" */ = {
+		42796B742EE35C0800F0AE9B /* Build configuration list for PBXNativeTarget "SwiftUI_MachineCoding" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				42796B752EE35C0800F0AE9B /* Debug */,
