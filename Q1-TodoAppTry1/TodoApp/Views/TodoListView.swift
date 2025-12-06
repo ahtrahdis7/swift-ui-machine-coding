@@ -76,6 +76,11 @@ struct TodoListView: View {
                             }
                     )
                 }
+                
+                ProgressView()
+                    .onAppear {
+                        viewModel.loadMore()
+                    }
             }.background(.white)
             
             // Floating glass button

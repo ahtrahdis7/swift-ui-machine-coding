@@ -9,7 +9,7 @@ import SwiftData
 
 @Model
 final class TodoModel {
-    var id: Int
+    @Attribute(.unique) var id: Int  // Unique constraint creates an index automatically
     var text: String
     var type: TodoType
     
