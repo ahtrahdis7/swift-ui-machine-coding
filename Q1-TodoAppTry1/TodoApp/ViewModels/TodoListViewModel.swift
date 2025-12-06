@@ -44,14 +44,19 @@ class TodoListViewModel: TodoListViewModelProtocol {
     private var cancellables = Set<AnyCancellable>()
     
     func add() {
-        let index = allTodos.count
-        let newTodo = TodoModel(id: index,text: "", description: "", type: .active)
+        let timeInterval = Date().timeIntervalSince1970
+        let index = Int(timeInterval)
+        let newTodo = TodoModel(id: index, text: "", description: "", type: .active)
+        editingText.update(newTodo: newTodo)
         allTodos[index] = newTodo
         edit(id: index)
     }
     
     func remove(id: Int) {
         allTodos.removeValue(forKey: id)
+        cancellables.removeAll()
+        editingText.update(newTodo: TodoModel(id: 0, text: "", description: "", type: .completed))
+        print("removed")
     }
     
     func edit(id: Int) {
@@ -60,7 +65,10 @@ class TodoListViewModel: TodoListViewModelProtocol {
             editingText.update(newTodo: editingTodo)
             
             $editingText
-//                .debounce(for: 0.1, scheduler: DispatchQueue.main)
+                .filter { value in
+                    print(value)
+                    return value.id == 0 ? false: true
+                }
                 .sink { [weak self] value in
                     guard let self = self else { return }
                     allTodos[editingText.id] = editingText.copy()
@@ -87,13 +95,7 @@ class TodoListViewModel: TodoListViewModelProtocol {
     }
     
     func stopEditing() {
+        cancellables.removeAll()
         state = .view
     }
-}
-
-private extension TodoListViewModel {
-//    func resetEdit() {
-//        editingText.id = 0
-//        editingText.te
-//    }
 }

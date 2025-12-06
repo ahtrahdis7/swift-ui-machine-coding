@@ -50,6 +50,15 @@ struct TodoListView: View {
                             
                         }
                         
+                        Spacer()
+                        Button(role: .destructive, action: {
+                            viewModel.remove(id: id)
+                        }){
+                            Image(systemName: "trash")
+                                .foregroundStyle(.red)
+                                .font(.system(size: 20))
+                        }
+                        .buttonStyle(.plain)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
