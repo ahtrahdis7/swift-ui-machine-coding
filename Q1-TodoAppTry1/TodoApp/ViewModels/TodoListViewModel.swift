@@ -47,12 +47,12 @@ class TodoListViewModel: TodoListViewModelProtocol {
     
     private var cancellables = Set<AnyCancellable>()
     private var nextId: Int = 1
-    private var modelContext: ModelContext
+    private let repository: TodoRepository
     private let pageSize: Int = 100
     private var loadedCount: Int = 0
     
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
+    init(repository: TodoRepository) {
+        self.repository = repository
         let startTime = Int(Date().timeIntervalSince1970)
         loadTodos()
         let endTime = Int(Date().timeIntervalSince1970)
@@ -60,55 +60,31 @@ class TodoListViewModel: TodoListViewModelProtocol {
         print(endTime - startTime)
     }
     
-    func updateModelContext(_ newContext: ModelContext) {
-        self.modelContext = newContext
-        loadTodos()
+    // Convenience initializer for ModelContext (creates repository internally)
+    convenience init(modelContext: ModelContext) {
+        self.init(repository: SwiftDataTodoRepository(modelContext: modelContext))
     }
+    
+    // Note: Repository is immutable after initialization
+    // If you need to update the context, recreate the ViewModel with a new repository
     
     private func loadTodos() {
         // First, calculate nextId by finding the MAX ID from ALL todos in database
         // This prevents overwriting existing todos when creating new ones
-        calculateNextId()
+        nextId = repository.getMaxId()
         
         // Load initial page of todos
         loadPage(offset: 0, limit: pageSize)
     }
     
-    private func calculateNextId() {
-        // Query to find the maximum ID from ALL todos (not just loaded ones)
-        var descriptor = FetchDescriptor<TodoModel>(
-            sortBy: [SortDescriptor(\.id, order: .reverse)]
-        )
-        descriptor.fetchLimit = 1  // We only need the max ID
-        
-        do {
-            if let maxTodo = try modelContext.fetch(descriptor).first {
-                nextId = maxTodo.id + 1
-            } else {
-                nextId = 1  // No todos exist yet
-            }
-        } catch {
-            print("Failed to calculate nextId: \(error)")
-            nextId = 1
-        }
-    }
-    
     private func loadPage(offset: Int, limit: Int) {
-        var descriptor = FetchDescriptor<TodoModel>(
-            sortBy: [SortDescriptor(\.id, order: .forward)]
-        )
-        descriptor.fetchLimit = limit
-        descriptor.fetchOffset = offset
-        
         do {
-            let todos = try modelContext.fetch(descriptor)
+            let todos = try repository.fetchPage(offset: offset, limit: limit)
             
             // Add todos to dictionary (skip if already loaded)
-            var newTodosCount = 0
             for todo in todos {
                 if allTodos[todo.id] == nil {
                     allTodos[todo.id] = todo
-                    newTodosCount += 1
                 }
             }
             
@@ -117,26 +93,10 @@ class TodoListViewModel: TodoListViewModelProtocol {
             loadedCount = offset + todos.count
             
             // Check if there are more todos to load
-            checkIfHasMore()
+            hasMoreTodos = repository.hasMore(offset: loadedCount)
             
         } catch {
             print("Failed to load todos: \(error)")
-        }
-    }
-    
-    private func checkIfHasMore() {
-        // Check if there are more todos by trying to fetch one item beyond what we've loaded
-        var testDescriptor = FetchDescriptor<TodoModel>(
-            sortBy: [SortDescriptor(\.id, order: .forward)]
-        )
-        testDescriptor.fetchOffset = loadedCount
-        testDescriptor.fetchLimit = 1
-        
-        do {
-            let testTodos = try modelContext.fetch(testDescriptor)
-            hasMoreTodos = !testTodos.isEmpty
-        } catch {
-            hasMoreTodos = false
         }
     }
     
@@ -144,22 +104,8 @@ class TodoListViewModel: TodoListViewModelProtocol {
         guard hasMoreTodos && !isLoadingMore else { return }
         
         isLoadingMore = true
-        
-        // Load next page
         loadPage(offset: loadedCount, limit: pageSize)
-        
         isLoadingMore = false
-    }
-    
-    private func saveContext() {
-        // Batch saves: Only save if there are pending changes
-        guard modelContext.hasChanges else { return }
-        
-        do {
-            try modelContext.save()
-        } catch {
-            print("Failed to save context: \(error)")
-        }
     }
     
     func add() {
@@ -175,18 +121,24 @@ class TodoListViewModel: TodoListViewModelProtocol {
         // Note: loadedCount tracks pagination position, not total todos
         // New todos are added directly, not via pagination
         
-        // Insert into SwiftData context
-        modelContext.insert(newTodo)
-        saveContext()
+        // Insert into repository
+        do {
+            try repository.insert(newTodo)
+        } catch {
+            print("Failed to add todo: \(error)")
+        }
         
         edit(id: index)
     }
     
     func remove(id: Int) {
         if let todo = allTodos[id] {
-            // Remove from SwiftData context
-            modelContext.delete(todo)
-            saveContext()
+            // Remove from repository
+            do {
+                try repository.delete(todo)
+            } catch {
+                print("Failed to remove todo: \(error)")
+            }
         }
         allTodos.removeValue(forKey: id)
         // Note: loadedCount represents fetch position, not dictionary size
@@ -195,7 +147,7 @@ class TodoListViewModel: TodoListViewModelProtocol {
         editingText.update(newTodo: TodoModel(id: 0, text: "", type: .completed))
         
         // Recheck if there are more todos after deletion
-        checkIfHasMore()
+        hasMoreTodos = repository.hasMore(offset: loadedCount)
         print("removed")
     }
     
@@ -218,9 +170,12 @@ class TodoListViewModel: TodoListViewModelProtocol {
                     if let existingTodo = allTodos[editingText.id] {
                         existingTodo.text = editingText.text
                         existingTodo.type = editingText.type
-                        // SwiftData automatically tracks changes to @Model objects
-                        // But we should save to persist
-                        self.saveContext()
+                        // Save changes through repository
+                        do {
+                            try self.repository.save()
+                        } catch {
+                            print("Failed to save todo changes: \(error)")
+                        }
                     }
                 }
                 .store(in: &cancellables)
@@ -231,8 +186,12 @@ class TodoListViewModel: TodoListViewModelProtocol {
     func toggleTodo(id: Int) {
         if let todo = allTodos[id] {
             todo.type = todo.type == .active ? .completed : .active
-            // SwiftData automatically tracks changes, but save to persist
-            saveContext()
+            // Save changes through repository
+            do {
+                try repository.save()
+            } catch {
+                print("Failed to save todo toggle: \(error)")
+            }
         }
             
         if editingText.id == id {
