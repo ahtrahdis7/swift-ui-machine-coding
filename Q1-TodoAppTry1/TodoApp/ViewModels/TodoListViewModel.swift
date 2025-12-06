@@ -7,8 +7,9 @@
 
 import Foundation
 import Combine
+import SwiftData
 
-enum TodoType {
+enum TodoType: Codable {
     case active
     case completed
 }
@@ -39,10 +40,48 @@ class TodoListViewModel: TodoListViewModelProtocol {
     @Published var state: TodoState = .view
     @Published var allTodos: [Int: TodoModel] = [:]
     @Published var filter = FilterType.all
-    @Published var editingText = TodoModel(id: 0, text: "", description: "", type: .active)
+    @Published var editingText = TodoModel(id: 0, text: "", type: .active)
     
     private var cancellables = Set<AnyCancellable>()
     private var nextId: Int = 1
+    private var modelContext: ModelContext
+    
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        let startTime = Int(Date().timeIntervalSince1970)
+        loadTodos()
+        let endTime = Int(Date().timeIntervalSince1970)
+        print("that's load time")
+        print(endTime - startTime)
+    }
+    
+    func updateModelContext(_ newContext: ModelContext) {
+        self.modelContext = newContext
+        loadTodos()
+    }
+    
+    private func loadTodos() {
+        // Fetch all todos from SwiftData
+        let descriptor = FetchDescriptor<TodoModel>(sortBy: [SortDescriptor(\.id)])
+        if let todos = try? modelContext.fetch(descriptor) {
+            // Populate the dictionary
+            for todo in todos {
+                allTodos[todo.id] = todo
+                // Update nextId to be higher than any existing ID
+                if todo.id >= nextId {
+                    nextId = todo.id + 1
+                }
+            }
+        }
+    }
+    
+    private func saveContext() {
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to save context: \(error)")
+        }
+    }
     
     func add() {
         // Generate unique ID using counter
@@ -52,15 +91,25 @@ class TodoListViewModel: TodoListViewModelProtocol {
         // Stop editing any current todo before adding a new one
         stopEditing()
         
-        let newTodo = TodoModel(id: index, text: "", description: "", type: .active)
+        let newTodo = TodoModel(id: index, text: "", type: .active)
         allTodos[index] = newTodo
+        
+        // Insert into SwiftData context
+        modelContext.insert(newTodo)
+        saveContext()
+        
         edit(id: index)
     }
     
     func remove(id: Int) {
+        if let todo = allTodos[id] {
+            // Remove from SwiftData context
+            modelContext.delete(todo)
+            saveContext()
+        }
         allTodos.removeValue(forKey: id)
         cancellables.removeAll()
-        editingText.update(newTodo: TodoModel(id: 0, text: "", description: "", type: .completed))
+        editingText.update(newTodo: TodoModel(id: 0, text: "", type: .completed))
         print("removed")
     }
     
@@ -74,12 +123,19 @@ class TodoListViewModel: TodoListViewModelProtocol {
             
             $editingText
                 .filter { value in
-                    print(value)
+                    print(value.id)
                     return value.id == 0 ? false: true
                 }
                 .sink { [weak self] value in
                     guard let self = self else { return }
-                    allTodos[editingText.id] = editingText.copy()
+                    // Update the todo in the dictionary (which is the same reference as in SwiftData)
+                    if let existingTodo = allTodos[editingText.id] {
+                        existingTodo.text = editingText.text
+                        existingTodo.type = editingText.type
+                        // SwiftData automatically tracks changes to @Model objects
+                        // But we should save to persist
+                        self.saveContext()
+                    }
                 }
                 .store(in: &cancellables)
         }
@@ -87,9 +143,10 @@ class TodoListViewModel: TodoListViewModelProtocol {
     }
     
     func toggleTodo(id: Int) {
-        if var todo = allTodos[id] {
+        if let todo = allTodos[id] {
             todo.type = todo.type == .active ? .completed : .active
-            allTodos[id] = todo
+            // SwiftData automatically tracks changes, but save to persist
+            saveContext()
         }
             
         if editingText.id == id {

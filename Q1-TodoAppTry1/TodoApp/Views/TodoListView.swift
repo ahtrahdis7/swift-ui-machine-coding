@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct TodoListView: View {
     @ObservedObject var viewModel: TodoListViewModel
@@ -128,5 +129,7 @@ struct TodoListView: View {
 }
 
 #Preview {
-    TodoListView(viewModel: TodoListViewModel())
+    let container = try! ModelContainer(for: TodoModel.self)
+    let context = ModelContext(container)
+    TodoListView(viewModel: TodoListViewModel(modelContext: context))
 }
