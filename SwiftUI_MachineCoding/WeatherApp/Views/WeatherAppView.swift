@@ -56,18 +56,6 @@ struct WeatherAppView: View {
                 .onSubmit {
                     viewModel.searchWeatherByCity(viewModel.searchCity)
                 }
-                .onChange(of: viewModel.searchCity) { newValue in
-                    if !newValue.isEmpty {
-                        // Debounce search - search after user stops typing
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            if viewModel.searchCity == newValue {
-                                viewModel.searchWeatherByCity(newValue)
-                            }
-                        }
-                    } else {
-                        viewModel.loadLocationWeather()
-                    }
-                }
             
             if !viewModel.searchCity.isEmpty {
                 Button(action: {

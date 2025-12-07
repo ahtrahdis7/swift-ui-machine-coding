@@ -29,6 +29,21 @@ class WeatherAppViewModel: WeatherAppViewModelProtocol {
         self.repository = repository
         self.locationService = locationService
         loadLocationWeather()
+        
+        $searchCity
+            .debounce(for: 0.3, scheduler: DispatchQueue.main)
+            .filter { newValue in
+                return !newValue.isEmpty
+            }
+            .sink(receiveCompletion: { _ in }) { [weak self] newValue in
+                guard let self = self else { return }
+                if newValue.count < 3 {
+                    self.loadLocationWeather()
+                } else {
+                    self.searchWeatherByCity(newValue)
+                }
+            }
+            .store(in: &cancellables)
     }
     
     convenience init() {
@@ -42,20 +57,20 @@ class WeatherAppViewModel: WeatherAppViewModelProtocol {
         isUsingLocation = true
         loading = true
         error = nil
-        
+
         Task {
             let permissionStatus = await locationService.requestLocationPermission()
             if permissionStatus {
                 do {
                     let (lat, long) = try await locationService.getCurrentLocation()
-                    currentLocationSubscription = repository.getCurrentWeather(latitude: lat, longitude: long, forceRefresh: true)
+                    currentLocationSubscription = repository.getCurrentWeather(latitude: lat, longitude: long, forceRefresh: false)
                         .sink(receiveCompletion: { [weak self] completion in
                             guard let self = self else { return }
                             switch completion {
                             case .finished:
                                 break
-                            case .failure(let failure):
-                                self.error = .networkError(NSError(domain: failure.localizedDescription, code: 101))
+                            case .failure(_):
+//                                self.error = .networkError(NSError(domain: failure.localizedDescription, code: 101))
                                 self.loading = false
                             }
                         }) { [weak self] weatherInfo in
@@ -89,7 +104,7 @@ class WeatherAppViewModel: WeatherAppViewModelProtocol {
         loading = true
         error = nil
         
-        currentCitySubscription = repository.getCurrentWeatherByCity(cityName, forceRefresh: true)
+        currentCitySubscription = repository.getCurrentWeatherByCity(cityName, forceRefresh: false)
             .sink(receiveCompletion: { [weak self] completion in
                 guard let self = self else { return }
                 switch completion {

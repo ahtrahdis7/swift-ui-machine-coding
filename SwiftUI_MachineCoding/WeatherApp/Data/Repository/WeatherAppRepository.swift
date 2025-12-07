@@ -14,6 +14,90 @@ protocol WeatherAppRepositoryProtocol {
 }
 
 class WeatherAppRepository: WeatherAppRepositoryProtocol {
+    private let networkService: NetworkServiceProtocol
+    private let localStorageService: LocalStorageServiceProtocol
+    private let apiKeyService: API_KeyServiceProtocol
+    private let apiKey = "f7ac2abcd27482593f5b9321d4772a54"
+    
+    init(
+        networkService: NetworkServiceProtocol = NetworkService(),
+        localStorageService: LocalStorageServiceProtocol = LocalStorageService(),
+        apiKeyService: API_KeyServiceProtocol = API_KeyService()
+    ) {
+        self.networkService = networkService
+        self.localStorageService = localStorageService
+        self.apiKeyService = apiKeyService
+        
+        // Save API key if not already saved
+        if !apiKeyService.hasAPIKey() {
+            try? apiKeyService.saveAPIKey(apiKey)
+        }
+    }
+    
+    func getCurrentWeather(latitude: Double, longitude: Double, forceRefresh: Bool) -> AnyPublisher<WeatherResponse, any Error> {
+        let subject = PassthroughSubject<WeatherResponse, Error>()
+        
+        Task {
+            // First, stream cached data if available and not forcing refresh
+            if !forceRefresh {
+                if let cachedData = try? localStorageService.getCurrentWeather() {
+                    subject.send(cachedData.weatherResponse)
+                }
+            }
+            
+            // Then make API call
+            do {
+                let weatherResponse = try await networkService.fetchCurrentWeather(latitude: latitude, longitude: longitude)
+                
+                // Stream the actual results
+                subject.send(weatherResponse)
+                
+                // Update cache
+                try localStorageService.saveCurrentWeather(weatherResponse, timestamp: Date())
+                
+                // Stop the stream
+                subject.send(completion: .finished)
+            } catch {
+                subject.send(completion: .failure(error))
+            }
+        }
+        
+        return subject.eraseToAnyPublisher()
+    }
+    
+    func getCurrentWeatherByCity(_ cityName: String, forceRefresh: Bool) -> AnyPublisher<WeatherResponse, any Error> {
+        let subject = PassthroughSubject<WeatherResponse, Error>()
+        
+        Task {
+            // First, stream cached data if available and not forcing refresh
+            if !forceRefresh {
+                if let cachedData = try? localStorageService.getCurrentWeather() {
+                    subject.send(cachedData.weatherResponse)
+                }
+            }
+            
+            // Then make API call
+            do {
+                let weatherResponse = try await networkService.fetchCurrentWeatherByCity(cityName)
+                
+                // Stream the actual results
+                subject.send(weatherResponse)
+                
+                // Update cache
+                try localStorageService.saveCurrentWeather(weatherResponse, timestamp: Date())
+                
+                // Stop the stream
+                subject.send(completion: .finished)
+            } catch {
+                subject.send(completion: .failure(error))
+            }
+        }
+        
+        return subject.eraseToAnyPublisher()
+    }
+}
+
+class WeatherAppRepositoryDummy: WeatherAppRepositoryProtocol {
     private var timers: [AnyCancellable] = []
     func getCurrentWeatherByCity(_ cityName: String, forceRefresh: Bool) -> AnyPublisher<WeatherResponse, any Error> {
         // Create a subject that will emit values
